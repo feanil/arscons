@@ -88,6 +88,7 @@ def getUsbTty(rx):
     return usb_ttys[0] if len(usb_ttys) == 1 else None
 
 AVR_BIN_PREFIX = None
+AVRDUDE_BIN_PREFIX = None
 AVRDUDE_CONF = None
 
 if platform == 'darwin':
@@ -98,6 +99,8 @@ if platform == 'darwin':
     SKETCHBOOK_HOME     = resolve_var('SKETCHBOOK_HOME', '')
     AVR_HOME            = resolve_var('AVR_HOME',
                                       path.join(ARDUINO_HOME, 'hardware/tools/avr/bin'))
+    AVRDUDE_BIN_PREFIX  = AVR_HOME
+
 elif platform == 'win32':
     # For Windows, use environment variables.
     ARDUINO_HOME        = resolve_var('ARDUINO_HOME', None)
@@ -106,13 +109,19 @@ elif platform == 'win32':
     if ARDUINO_HOME:
         AVR_HOME        = resolve_var('AVR_HOME',
                                       path.join(ARDUINO_HOME, 'hardware/tools/avr/bin'))
+        AVRDUDE_BIN_PREFIX  = AVR_HOME
+
 else:
     # For Ubuntu Linux (9.10 or higher)
     ARDUINO_HOME        = resolve_var('ARDUINO_HOME', '/usr/share/arduino/')
     ARDUINO_PORT        = resolve_var('ARDUINO_PORT', getUsbTty('/dev/ttyUSB*'))
     SKETCHBOOK_HOME     = resolve_var('SKETCHBOOK_HOME',
                                       path.expanduser('~/share/arduino/sketchbook/'))
+    # Left blank because on linux the files are expected to be on your path
+    # avr-gcc 
     AVR_HOME            = resolve_var('AVR_HOME', '')
+    AVRDUDE_BIN_PREFIX  = resolve_var('AVRDUDE_BIN_PREFIX',
+                                      path.join(ARDUINO_HOME, 'hardware/tools'))
 
 
 ARDUINO_BOARD   = resolve_var('ARDUINO_BOARD', 'atmega328')
@@ -179,6 +188,8 @@ else:
 # Some OSs need bundle with IDE tool-chain
 if platform == 'darwin' or platform == 'win32':
     AVRDUDE_CONF = path.join(ARDUINO_HOME, 'hardware/tools/avr/etc/avrdude.conf')
+else:
+    AVRDUDE_CONF = path.join(ARDUINO_HOME, 'hardware/tools/avrdude.conf')
 
 AVR_BIN_PREFIX = path.join(AVR_HOME, 'avr-')
 
@@ -431,7 +442,7 @@ avrdudeOpts = ['-V', '-F', '-c %s' % UPLOAD_PROTOCOL, '-b %s' % UPLOAD_SPEED,
 if AVRDUDE_CONF:
     avrdudeOpts.append('-C %s' % AVRDUDE_CONF)
 
-fuse_cmd = '%s %s' % (path.join(path.dirname(AVR_BIN_PREFIX), 'avrdude'),
+fuse_cmd = '%s %s' % (path.join(AVRDUDE_BIN_PREFIX, 'avrdude'),
                       ' '.join(avrdudeOpts))
 
 upload = envArduino.Alias('upload', TARGET + '.hex', [reset_cmd, fuse_cmd])
